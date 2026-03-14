@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SegurOS — Gestor de Pólizas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F6F3;
+  --surface:#FFFFFF;
+  --border:#E8E6E1;
+  --border2:#D4D1CC;
+  --text:#1A1917;
+  --text2:#6B6860;
+  --text3:#9B9890;
+  --accent:#1B5FA6;
+  --accent-light:#EAF1FB;
+  --green:#2D7A4F;
+  --green-light:#E8F5EE;
+  --amber:#9A6200;
+  --amber-light:#FEF3DC;
+  --red:#C0392B;
+  --red-light:#FDECEA;
+  --radius:10px;
+  --radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+.app{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+/* topbar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+.topbar-brand{display:flex;align-items:center;gap:9px}
+.topbar-logo{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.topbar-logo svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2}
+.topbar-title{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
+.topbar-sub{font-size:11px;color:var(--text3);margin-top:0px;font-family:'DM Mono',monospace}
+/* content */
+.content{flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:14px;padding-bottom:90px}
+/* cards */
+.card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden}
+.card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-0.2px}
+/* buttons */
+.btn{padding:10px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;width:100%;border:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#154d8a}
+.btn-primary:disabled{background:#99b8d9;cursor:not-allowed}
+.btn-outline{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn-outline:hover{background:var(--accent-light)}
+.btn-sm{padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:12px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
+.btn-sm:hover{background:var(--bg)}
+/* badges */
+.badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;flex-shrink:0;white-space:nowrap;font-family:'DM Mono',monospace}
+.ok{background:var(--green-light);color:var(--green)}
+.warn{background:var(--amber-light);color:var(--amber)}
+.danger{background:var(--red-light);color:var(--red)}
+.info{background:var(--accent-light);color:var(--accent)}
+.neutral{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+/* metrics */
+.metrics{display:grid;gap:10px}
+.metrics-3{grid-template-columns:repeat(3,1fr)}
+.metrics-2{grid-template-columns:1fr 1fr}
+.metric{background:var(--surface);border-radius:var(--radius);padding:12px 14px;border:1px solid var(--border)}
+.metric-val{font-size:22px;font-weight:600;color:var(--text);letter-spacing:-0.5px;font-family:'DM Mono',monospace}
+.metric-label{font-size:10px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+/* rows */
+.row{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;cursor:pointer;transition:background 0.1s}
+.row:last-child{border-bottom:none}
+.row:hover{background:var(--bg)}
+.avatar{width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;font-family:'DM Mono',monospace}
+.av0{background:#DBEAFE;color:#1e40af}
+.av1{background:#FEF3C7;color:#92400e}
+.av2{background:#D1FAE5;color:#065f46}
+.av3{background:#EDE9FE;color:#5b21b6}
+.av4{background:#FCE7F3;color:#9d174d}
+.row-info{flex:1;min-width:0}
+.row-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-detail{font-size:11px;color:var(--text3);margin-top:2px}
+/* form */
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{background:var(--bg);border-radius:var(--radius);padding:8px 11px;font-size:13px;color:var(--text);border:1px solid var(--border);width:100%;font-family:'DM Sans',sans-serif;transition:border 0.15s}
+.field:focus{outline:none;border-color:var(--accent)}
+select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6860' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.section-pad{padding:16px;display:flex;flex-direction:column;gap:12px}
+/* tabs */
+.tab{display:none}
+.tab.active{display:flex;flex-direction:column;gap:14px}
+.step{display:none}
+.step.active{display:flex;flex-direction:column;gap:14px}
+/* bottom nav */
+.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 0 12px;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;z-index:20}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px;border:none;background:transparent}
+.nav-btn span{font-size:9px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:0.3px}
+.nav-btn.active span{color:var(--accent)}
+.nav-icon{width:20px;height:20px;stroke:var(--text3);fill:none;stroke-width:1.5}
+.nav-btn.active .nav-icon{stroke:var(--accent)}
+/* upload */
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:28px 16px;text-align:center;cursor:pointer;background:var(--surface);transition:all 0.15s}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-light)}
+.upload-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.upload-sub{font-size:12px;color:var(--text3)}
+/* spinner */
+.spinner{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-box{text-align:center;padding:30px 16px}
+.loading-text{font-size:13px;color:var(--text3);margin-top:10px}
+/* search */
+.search-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;gap:8px;padding:8px 12px}
+.search-wrap input{flex:1;border:none;background:transparent;font-size:13px;color:var(--text);outline:none;font-family:'DM Sans',sans-serif}
+/* filter chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:4px 11px;border-radius:20px;font-size:11px;border:1px solid var(--border2);cursor:pointer;background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-weight:500;transition:all 0.1s}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* alert banner */
+.alert-banner{background:var(--amber-light);border-radius:var(--radius);padding:11px 14px;display:flex;align-items:center;gap:9px;border:1px solid #f5d78a}
+.alert-text{font-size:12px;color:var(--amber);font-weight:500}
+/* modal */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:40;background:rgba(0,0,0,0.35);align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border-radius:20px 20px 0 0;padding:18px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.modal-title{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.detail-row:last-child{border-bottom:none}
+.detail-key{font-size:12px;color:var(--text2);font-weight:500}
+.detail-val{font-size:13px;font-weight:600;color:var(--text)}
+/* success */
+.success-icon{width:46px;height:46px;background:var(--green-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+/* mail */
+.mail-item{padding:14px 16px;border-bottom:1px solid var(--border)}
+.mail-item:last-child{border-bottom:none}
+.mail-subject{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.mail-preview{font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:8px}
+.mail-gen{font-size:12px;color:var(--text);line-height:1.7;background:var(--bg);border-radius:var(--radius);padding:11px;margin-bottom:8px;border:1px solid var(--border);white-space:pre-wrap}
+/* divider */
+.divider{display:flex;align-items:center;gap:10px;color:var(--text3);font-size:11px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+/* section label */
+.slabel{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+/* toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;z-index:100;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7l-9-5z"/></svg>
+      </div>
+      <div>
+        <div class="topbar-title">SegurOS</div>
+        <div class="topbar-sub" id="topbar-sub">gestor de pólizas</div>
+      </div>
+    </div>
+    <div id="sync-status" style="font-size:11px;color:var(--text3)"></div>
+  </div>
+
+  <div class="content">
+
+    <!-- INICIO -->
+    <div id="tab-inicio" class="tab active">
+      <div id="alert-banner"></div>
+      <div class="slabel">Resumen</div>
+      <div class="metrics metrics-3">
+        <div class="metric"><div class="metric-val ok" id="m-vigentes">—</div><div class="metric-label">Vigentes</div></div>
+        <div class="metric"><div class="metric-val warn" id="m-vencen">—</div><div class="metric-label">Por vencer</div></div>
+        <div class="metric"><div class="metric-val danger" id="m-vencidas">—</div><div class="metric-label">Vencidas</div></div>
+      </div>
+      <div class="metrics metrics-2">
+        <div class="metric"><div class="metric-val" style="color:var(--green);font-size:16px" id="r-cobrado">—</div><div class="metric-label">Cobrado</div></div>
+        <div class="metric"><div class="metric-val" style="color:var(--amber);font-size:16px" id="r-pendiente">—</div><div class="metric-label">Pendiente</div></div>
+      </div>
+      <div class="metrics metrics-2">
+        <div class="metric"><div class="metric-val" style="color:var(--accent);font-size:16px" id="r-comision">—</div><div class="metric-label">Comisión est.</div></div>
+        <div class="metric"><div class="metric-val" style="font-size:16px" id="r-total">—</div><div class="metric-label">Pólizas</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Vencimientos próximos</div></div>
+        <div id="alertas-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Cobros pendientes</div></div>
+        <div id="cobros-inicio"></div>
+      </div>
+    </div>
+
+    <!-- CARGAR -->
+    <div id="tab-cargar" class="tab">
+      <div id="step-upload" class="step active">
+        <div style="font-size:13px;color:var(--text3)">Subí el PDF y la IA extrae los datos automáticamente.</div>
+        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+          <svg width="34" height="34" viewBox="0 0 32 32" fill="none" stroke="var(--accent)" stroke-width="1.5" style="margin:0 auto 10px;display:block"><path d="M16 22V10m0 0l-5 5m5-5l5 5"/><path d="M5 23a4 4 0 01-1-7.9A8 8 0 0124 12a5 5 0 010 11H5z"/></svg>
+          <div class="upload-title">Subir PDF de póliza</div>
+          <div class="upload-sub">Tocá para seleccionar el archivo</div>
+        </div>
+        <input type="file" id="file-input" accept="application/pdf" style="display:none" onchange="handleFile(event)">
+        <div class="divider">o cargá manualmente</div>
+        <button class="btn btn-outline" onclick="goStep('manual')">Ingresar datos a mano</button>
+      </div>
+
+      <div id="step-manual" class="step">
+        <div class="card"><div class="section-pad">
+          <div class="form-group"><div class="form-label">Asegurado</div><input id="m-nombre" class="field" placeholder="Nombre completo"/></div>
+          <div class="form-row">
+            <div class="form-group"><div class="form-label">Ramo</div><select id="m-ramo" class="field"><option>Auto</option><option>Hogar</option><option>Vida</option><option>ART</option><option>Combinado</option></select></div>
+            <div class="form-group"><div class="form-label">Compañía</div><input id="m-compania" class="field" placeholder="Ej: Sancor"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><div class="form-label">N° póliza</div><input id="m-numero" class="field" placeholder="12345"/></div>
+            <div class="form-group"><div class="form-label">Vencimiento</div><input id="m-vence" class="field" type="date"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><div class="form-label">Prima ($)</div><input id="m-monto" class="field" type="number" placeholder="0"/></div>
+            <div class="form-group"><div class="form-label">Comisión (%)</div><input id="m-comision" class="field" type="number" placeholder="15"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><div class="form-label">Estado pago</div><select id="m-pago" class="field"><option value="pendiente">Pendiente</option><option value="cobrado">Cobrado</option></select></div>
+            <div class="form-group"><div class="form-label">Email</div><input id="m-email" class="field" type="email" placeholder="mail@..."/></div>
+          </div>
+        </div></div>
+        <button class="btn btn-primary" onclick="guardarManual()">Guardar póliza</button>
+        <button class="btn btn-outline" onclick="goStep('upload')">Volver</button>
+      </div>
+
+      <div id="step-loading" class="step">
+        <div class="card"><div class="loading-box"><div class="spinner"></div><div class="loading-text" id="loading-text">Leyendo el PDF...</div></div></div>
+      </div>
+
+      <div id="step-preview" class="step">
+        <div style="font-size:13px;color:var(--text3)">La IA detectó estos datos. Revisá y confirmá.</div>
+        <div class="card"><div class="section-pad">
+          <div class="form-group"><div class="form-label">Asegurado</div><input id="r-nombre" class="field"/></div>
+          <div class="form-row">
+            <div class="form-group"><div class="form-label">Ramo</div><input id="r-ramo" class="field"/></div>
+            <div class="form-group"><div class="form-label">Compañía</div><input id="r-compania" class="field"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><div class="form-label">N° póliza</div><input id="r-numero" class="field"/></div>
+            <div class="form-group"><div class="form-label">Vencimiento</div><input id="r-vence" class="field" type="date"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><div class="form-label">Prima ($)</div><input id="r-monto" class="field" type="number"/></div>
+            <div class="form-group"><div class="form-label">Comisión (%)</div><input id="r-comision" class="field" type="number" placeholder="15"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><div class="form-label">Estado pago</div><select id="r-pago" class="field"><option value="pendiente">Pendiente</option><option value="cobrado">Cobrado</option></select></div>
+            <div class="form-group"><div class="form-label">Email</div><input id="r-email" class="field" type="email"/></div>
+          </div>
+        </div></div>
+        <button class="btn btn-primary" onclick="confirmarPoliza()">Confirmar y guardar</button>
+        <button class="btn btn-outline" onclick="goStep('upload')">Subir otro PDF</button>
+      </div>
+
+      <div id="step-success" class="step">
+        <div class="card"><div class="section-pad" style="text-align:center">
+          <div class="success-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px">Póliza guardada</div>
+          <div style="font-size:13px;color:var(--text3)" id="success-msg"></div>
+        </div></div>
+        <button class="btn btn-primary" onclick="goStep('upload')">Cargar otra póliza</button>
+        <button class="btn btn-outline" onclick="goTab('polizas')">Ver todas las pólizas</button>
+      </div>
+    </div>
+
+    <!-- POLIZAS -->
+    <div id="tab-polizas" class="tab">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
+        <input id="buscar" placeholder="Buscar cliente, ramo, compañía..." oninput="renderPolizas()"/>
+      </div>
+      <div class="chips" id="filtro-chips"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Pólizas</div>
+          <span id="p-count" class="badge neutral">0</span>
+        </div>
+        <div id="polizas-list"></div>
+      </div>
+    </div>
+
+    <!-- COBROS -->
+    <div id="tab-cobros" class="tab">
+      <div class="metrics metrics-2">
+        <div class="metric"><div class="metric-val" style="color:var(--green);font-size:16px" id="c-cobrado">—</div><div class="metric-label">Cobrado</div></div>
+        <div class="metric"><div class="metric-val" style="color:var(--amber);font-size:16px" id="c-pendiente">—</div><div class="metric-label">Pendiente</div></div>
+      </div>
+      <div class="metric"><div class="metric-val" style="color:var(--accent);font-size:16px" id="c-comision">—</div><div class="metric-label">Comisión estimada total</div></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Estado de cobranzas</div></div>
+        <div id="cobros-list"></div>
+      </div>
+    </div>
+
+    <!-- MAILS -->
+    <div id="tab-mails" class="tab">
+      <div style="font-size:13px;color:var(--text3)">Generá mails con IA para tus clientes.</div>
+      <div class="card">
+        <div class="mail-item">
+          <div class="mail-subject">Aviso de vencimiento</div>
+          <div class="mail-preview">Recordatorio cuando una póliza está por vencer.</div>
+          <div id="mg-0"></div>
+          <button class="btn-sm" onclick="generarMail(0,'Escribí un mail de aviso de vencimiento de póliza de seguros de parte de un productor de seguros argentino. Tono amigable y profesional. Solo el cuerpo del mail, sin asunto.')">Generar con IA</button>
+        </div>
+        <div class="mail-item">
+          <div class="mail-subject">Recibo de pago</div>
+          <div class="mail-preview">Confirmación de cobro con recibo adjunto.</div>
+          <div id="mg-1"></div>
+          <button class="btn-sm" onclick="generarMail(1,'Escribí un mail de confirmación de pago de póliza de seguros de parte de un productor argentino. Indicá que se adjunta el recibo. Tono formal y cordial. Solo el cuerpo.')">Generar con IA</button>
+        </div>
+        <div class="mail-item">
+          <div class="mail-subject">Bienvenida nuevo cliente</div>
+          <div class="mail-preview">Mail cuando se emite una póliza nueva.</div>
+          <div id="mg-2"></div>
+          <button class="btn-sm" onclick="generarMail(2,'Escribí un mail de bienvenida para nuevo cliente de seguros de parte de un productor argentino. Tono cálido y profesional. Solo el cuerpo.')">Generar con IA</button>
+        </div>
+        <div class="mail-item">
+          <div class="mail-subject">Gestión con aseguradora</div>
+          <div class="mail-preview">Para comunicarte con la compañía sobre una póliza.</div>
+          <div id="mg-3"></div>
+          <button class="btn-sm" onclick="generarMail(3,'Escribí un mail formal de un productor de seguros argentino a una compañía aseguradora para gestionar una póliza. Tono profesional. Solo el cuerpo.')">Generar con IA</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-inicio" onclick="goTab('inicio')">
+      <svg class="nav-icon" viewBox="0 0 20 20"><path d="M3 10L10 3l7 7"/><path d="M5 8.5V16h4v-4h2v4h4V8.5"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-btn" id="nav-cargar" onclick="goTab('cargar')">
+      <svg class="nav-icon" viewBox="0 0 20 20"><path d="M10 13V7m0 0L7 10m3-3l3 3"/><rect x="3" y="3" width="14" height="14" rx="3"/></svg>
+      <span>Cargar</span>
+    </button>
+    <button class="nav-btn" id="nav-polizas" onclick="goTab('polizas')">
+      <svg class="nav-icon" viewBox="0 0 20 20"><rect x="4" y="3" width="12" height="14" rx="2"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>
+      <span>Pólizas</span>
+    </button>
+    <button class="nav-btn" id="nav-cobros" onclick="goTab('cobros')">
+      <svg class="nav-icon" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6v1.5m0 5V14m-2-5.5c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2 .9-2 2 .9 2 2 2"/></svg>
+      <span>Cobros</span>
+    </button>
+    <button class="nav-btn" id="nav-mails" onclick="goTab('mails')">
+      <svg class="nav-icon" viewBox="0 0 20 20"><rect x="2" y="5" width="16" height="12" rx="2"/><path d="M2 7l8 5 8-5"/></svg>
+      <span>Mails</span>
+    </button>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="modal-title" id="d-title"></div>
+      <button style="font-size:22px;cursor:pointer;background:none;border:none;color:var(--text3);line-height:1" onclick="closeDetail()">×</button>
+    </div>
+    <div id="d-rows"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" id="d-cobrar-btn">Marcar cobrado</button>
+      <button class="btn btn-outline" style="flex:1" id="d-pendiente-btn">Marcar pendiente</button>
+    </div>
+    <button class="btn btn-primary" id="d-recibo-btn">Generar recibo PDF</button>
+    <button class="btn-sm" style="color:var(--red);border-color:#f5c6c6;width:100%;padding:8px" id="d-eliminar-btn">Eliminar póliza</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG SUPABASE ───────────────────────────────────────
+const SUPABASE_URL = 'https://apmjoahswdwbbhvutjst.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwbWpvYWhzd2R3YmJodnV0anN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NDIxNDcsImV4cCI6MjA4OTAxODE0N30.2lQ6iuPb8UBg0X9-B0Tpw6Otkwr2r5KVvOeC44d6gYk';
+const API = `${SUPABASE_URL}/rest/v1`;
+const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`};
+
+// ─── SUPABASE HELPERS ──────────────────────────────────────
+async function dbGet(){
+  const r = await fetch(`${API}/polizas?select=*&order=created_at.desc`,{headers:HEADERS});
+  return r.json();
+}
+async function dbInsert(p){
+  const r = await fetch(`${API}/polizas`,{method:'POST',headers:{...HEADERS,'Prefer':'return=representation'},body:JSON.stringify(p)});
+  return r.json();
+}
+async function dbUpdate(id,data){
+  await fetch(`${API}/polizas?id=eq.${id}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify(data)});
+}
+async function dbDelete(id){
+  await fetch(`${API}/polizas?id=eq.${id}`,{method:'DELETE',headers:HEADERS});
+}
+
+// ─── STATE ─────────────────────────────────────────────────
+let polizas = [];
+let selectedIdx = null;
+let filtroCompania = 'todos';
+let reciboCounter = 1;
+const avCls = ['av0','av1','av2','av3','av4'];
+
+// ─── UTILS ─────────────────────────────────────────────────
+function initials(n){return(n||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?'}
+function diasHasta(d){if(!d)return 999;const h=new Date();h.setHours(0,0,0,0);return Math.round((new Date(d+'T00:00:00')-h)/86400000)}
+function fmtDate(d){if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`}
+function fmt(n){return'$'+(n||0).toLocaleString('es-AR')}
+function badge(d){
+  const dd=diasHasta(d);
+  if(dd<0)return'<span class="badge danger">Vencida</span>';
+  if(dd<=5)return`<span class="badge danger">Vence en ${dd}d</span>`;
+  if(dd<=15)return`<span class="badge warn">Vence en ${dd}d</span>`;
+  if(dd<=30)return`<span class="badge warn">Vence en ${dd}d</span>`;
+  return'<span class="badge ok">Vigente</span>';
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ─── NAV ───────────────────────────────────────────────────
+function goTab(t){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('nav-'+t).classList.add('active');
+  const titles={inicio:'gestor de pólizas',cargar:'nueva póliza',polizas:'listado de pólizas',cobros:'cobranzas',mails:'plantillas de mail'};
+  document.getElementById('topbar-sub').textContent=titles[t]||'';
+  renderAll();
+}
+function goStep(s){
+  document.querySelectorAll('#tab-cargar .step').forEach(e=>e.classList.remove('active'));
+  document.getElementById('step-'+s).classList.add('active');
+}
+
+// ─── RENDER ────────────────────────────────────────────────
+function renderAll(){
+  let vigentes=0,vencen=0,vencidas=0,cobrado=0,pendiente=0,comision=0;
+  let alertasHTML='',cobrosInicioHTML='',cobrosHTML='';
+  const companias=new Set();
+
+  polizas.forEach((p,i)=>{
+    const dd=diasHasta(p.vence);
+    if(dd<0)vencidas++;else if(dd<=30)vencen++;else vigentes++;
+    const monto=parseFloat(p.monto)||0;
+    const com=monto*(parseFloat(p.comision)||15)/100;
+    comision+=com;
+    if(p.pago==='cobrado')cobrado+=monto;else pendiente+=monto;
+    if(p.compania)companias.add(p.compania);
+    const av=`<div class="avatar ${avCls[i%5]}">${initials(p.nombre)}</div>`;
+    if(dd<=30&&dd>=-1){
+      alertasHTML+=`<div class="row" onclick="openDetail(${i})">${av}<div class="row-info"><div class="row-name">${p.nombre}</div><div class="row-detail">${p.ramo} · vence ${fmtDate(p.vence)}</div></div>${badge(p.vence)}</div>`;
+    }
+    if(p.pago==='pendiente'){
+      cobrosInicioHTML+=`<div class="row" onclick="openDetail(${i})">${av}<div class="row-info"><div class="row-name">${p.nombre}</div><div class="row-detail">${p.ramo}</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600">${fmt(monto)}</div><span class="badge warn">Pendiente</span></div></div>`;
+    }
+    cobrosHTML+=`<div class="row" onclick="openDetail(${i})">${av}<div class="row-info"><div class="row-name">${p.nombre}</div><div class="row-detail">${p.ramo} · comisión ${fmt(Math.round(com))}</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600">${fmt(monto)}</div>${p.pago==='cobrado'?'<span class="badge ok">Cobrado</span>':'<span class="badge warn">Pendiente</span>'}</div></div>`;
+  });
+
+  const empty='<div style="padding:22px;text-align:center;font-size:13px;color:var(--text3)">Sin datos</div>';
+  document.getElementById('m-vigentes').textContent=vigentes;
+  document.getElementById('m-vencen').textContent=vencen;
+  document.getElementById('m-vencidas').textContent=vencidas;
+  document.getElementById('r-cobrado').textContent=fmt(cobrado);
+  document.getElementById('r-pendiente').textContent=fmt(pendiente);
+  document.getElementById('r-comision').textContent=fmt(Math.round(comision));
+  document.getElementById('r-total').textContent=polizas.length;
+  document.getElementById('alertas-list').innerHTML=alertasHTML||empty;
+  document.getElementById('cobros-inicio').innerHTML=cobrosInicioHTML||empty;
+  document.getElementById('c-cobrado').textContent=fmt(cobrado);
+  document.getElementById('c-pendiente').textContent=fmt(pendiente);
+  document.getElementById('c-comision').textContent=fmt(Math.round(comision));
+  document.getElementById('cobros-list').innerHTML=cobrosHTML||empty;
+
+  const urgentes=polizas.filter(p=>diasHasta(p.vence)<=5&&diasHasta(p.vence)>=0);
+  document.getElementById('alert-banner').innerHTML=urgentes.length
+    ?`<div class="alert-banner"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--amber)" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3m0 2v.5"/></svg><div class="alert-text">${urgentes.length} póliza${urgentes.length>1?'s':''} vence${urgentes.length>1?'n':''} en los próximos 5 días</div></div>`
+    :'';
+
+  let chips='<button class="chip'+(filtroCompania==='todos'?' active':'')+'" onclick="setFiltro(\'todos\')">Todas</button>';
+  companias.forEach(c=>{chips+=`<button class="chip${filtroCompania===c?' active':''}" onclick="setFiltro('${c.replace(/'/g,"\\'")}')">  ${c}</button>`;});
+  document.getElementById('filtro-chips').innerHTML=chips;
+  renderPolizas();
+}
+
+function setFiltro(c){filtroCompania=c;renderAll();}
+
+function renderPolizas(){
+  const q=(document.getElementById('buscar')||{value:''}).value.toLowerCase();
+  const filtered=polizas.filter(p=>{
+    const mq=!q||p.nombre?.toLowerCase().includes(q)||(p.compania||'').toLowerCase().includes(q)||(p.ramo||'').toLowerCase().includes(q);
+    const mc=filtroCompania==='todos'||p.compania===filtroCompania;
+    return mq&&mc;
+  });
+  document.getElementById('p-count').textContent=filtered.length;
+  document.getElementById('polizas-list').innerHTML=filtered.length
+    ?filtered.map(p=>{const i=polizas.indexOf(p);return`<div class="row" onclick="openDetail(${i})"><div class="avatar ${avCls[i%5]}">${initials(p.nombre)}</div><div class="row-info"><div class="row-name">${p.nombre}</div><div class="row-detail">${p.ramo} · ${p.compania}${p.numero?' · Nº'+p.numero:''}</div></div>${badge(p.vence)}</div>`;}).join('')
+    :'<div style="padding:22px;text-align:center;font-size:13px;color:var(--text3)">Sin resultados</div>';
+}
+
+// ─── DETAIL MODAL ──────────────────────────────────────────
+function openDetail(i){
+  selectedIdx=i;
+  const p=polizas[i];
+  const com=Math.round((parseFloat(p.monto)||0)*(parseFloat(p.comision)||15)/100);
+  document.getElementById('d-title').textContent=p.nombre;
+  document.getElementById('d-rows').innerHTML=`
+    <div class="detail-row"><div class="detail-key">Ramo</div><div class="detail-val">${p.ramo||'—'}</div></div>
+    <div class="detail-row"><div class="detail-key">Compañía</div><div class="detail-val">${p.compania||'—'}</div></div>
+    ${p.numero?`<div class="detail-row"><div class="detail-key">N° póliza</div><div class="detail-val">${p.numero}</div></div>`:''}
+    <div class="detail-row"><div class="detail-key">Vencimiento</div><div class="detail-val">${fmtDate(p.vence)}</div></div>
+    <div class="detail-row"><div class="detail-key">Prima mensual</div><div class="detail-val">${fmt(p.monto)}</div></div>
+    <div class="detail-row"><div class="detail-key">Comisión (${p.comision||15}%)</div><div class="detail-val" style="color:var(--accent)">${fmt(com)}</div></div>
+    <div class="detail-row"><div class="detail-key">Estado pago</div><div class="detail-val">${p.pago==='cobrado'?'<span class="badge ok">Cobrado</span>':'<span class="badge warn">Pendiente</span>'}</div></div>
+    ${p.email?`<div class="detail-row"><div class="detail-key">Email</div><div class="detail-val" style="font-size:12px">${p.email}</div></div>`:''}
+  `;
+  document.getElementById('d-cobrar-btn').onclick=async()=>{await dbUpdate(p.id,{pago:'cobrado'});p.pago='cobrado';toast('Marcado como cobrado');closeDetail();renderAll();};
+  document.getElementById('d-pendiente-btn').onclick=async()=>{await dbUpdate(p.id,{pago:'pendiente'});p.pago='pendiente';toast('Marcado como pendiente');closeDetail();renderAll();};
+  document.getElementById('d-recibo-btn').onclick=()=>generarRecibo(i);
+  document.getElementById('d-eliminar-btn').onclick=async()=>{if(confirm('¿Eliminar esta póliza?')){await dbDelete(p.id);polizas.splice(i,1);toast('Póliza eliminada');closeDetail();renderAll();}};
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeDetail(){document.getElementById('detail-modal').classList.remove('open')}
+
+// ─── GUARDAR ───────────────────────────────────────────────
+function collectForm(pre){
+  return{
+    nombre:(document.getElementById(pre+'nombre').value||'').trim()||'Sin nombre',
+    ramo:document.getElementById(pre+'ramo').value||'Auto',
+    compania:(document.getElementById(pre+'compania').value||'').trim()||'—',
+    numero:(document.getElementById(pre+'numero').value||'').trim()||null,
+    vence:document.getElementById(pre+'vence').value||null,
+    monto:parseFloat(document.getElementById(pre+'monto').value)||0,
+    comision:parseFloat(document.getElementById(pre+'comision').value)||15,
+    pago:document.getElementById(pre+'pago').value||'pendiente',
+    email:(document.getElementById(pre+'email')||{value:''}).value||null
+  };
+}
+async function guardarManual(){
+  if(!document.getElementById('m-nombre').value.trim()){alert('Ingresá el nombre del cliente');return;}
+  const data=collectForm('m-');
+  setSyncStatus('Guardando...');
+  const res=await dbInsert(data);
+  if(res&&res[0]){polizas.unshift(res[0]);document.getElementById('success-msg').textContent=`${data.nombre} · ${data.ramo}`;goStep('success');renderAll();setSyncStatus('');toast('Póliza guardada');}
+  else{alert('Error al guardar. Verificá la conexión.');setSyncStatus('');}
+}
+async function confirmarPoliza(){
+  const data=collectForm('r-');
+  setSyncStatus('Guardando...');
+  const res=await dbInsert(data);
+  if(res&&res[0]){polizas.unshift(res[0]);document.getElementById('success-msg').textContent=`${data.nombre} · ${data.ramo}`;goStep('success');renderAll();setSyncStatus('');toast('Póliza guardada');}
+  else{alert('Error al guardar.');setSyncStatus('');}
+}
+
+function setSyncStatus(msg){document.getElementById('sync-status').textContent=msg;}
+
+// ─── PDF READER ────────────────────────────────────────────
+async function handleFile(e){
+  const file=e.target.files[0];if(!file)return;
+  goStep('loading');
+  const msgs=['Leyendo el PDF...','Identificando asegurado...','Extrayendo vencimientos...','Casi listo...'];
+  let li=0;
+  const lt=setInterval(()=>{if(++li<msgs.length)document.getElementById('loading-text').textContent=msgs[li];},1800);
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+    const resp=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',max_tokens:1000,
+      system:`Extraé datos de pólizas de seguros argentinas. Devolvé SOLO JSON sin markdown ni texto extra:
+{"nombre":"","ramo":"","compania":"","numero":"","vence":"YYYY-MM-DD","monto":0}
+Si no encontrás un dato usá cadena vacía o 0.`,
+      messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'Extraé los datos de esta póliza.'}]}]
+    })});
+    clearInterval(lt);
+    const data=await resp.json();
+    const text=data.content.map(c=>c.text||'').join('');
+    const p=JSON.parse(text.replace(/```json|```/g,'').trim());
+    document.getElementById('r-nombre').value=p.nombre||'';
+    document.getElementById('r-ramo').value=p.ramo||'';
+    document.getElementById('r-compania').value=p.compania||'';
+    document.getElementById('r-numero').value=p.numero||'';
+    document.getElementById('r-vence').value=p.vence||'';
+    document.getElementById('r-monto').value=p.monto||'';
+    document.getElementById('r-comision').value=15;
+    document.getElementById('r-pago').value='pendiente';
+    document.getElementById('r-email').value='';
+    goStep('preview');
+  }catch(err){
+    clearInterval(lt);
+    alert('No se pudo leer el PDF. Podés cargarlo a mano.');
+    goStep('upload');
+  }
+  e.target.value='';
+}
+
+// ─── RECIBO PDF ────────────────────────────────────────────
+function generarRecibo(i){
+  const p=polizas[i];
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const hoy=new Date();
+  const fechaStr=`${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+  const nRec=String(reciboCounter++).padStart(4,'0');
+  const com=Math.round((parseFloat(p.monto)||0)*(parseFloat(p.comision)||15)/100);
+
+  doc.setFillColor(27,95,166);doc.rect(0,0,210,30,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(20);doc.setFont('helvetica','bold');doc.text('SegurOS',14,13);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text('Productor de Seguros',14,20);
+  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text(`RECIBO N° ${nRec}`,145,13);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(`Fecha: ${fechaStr}`,145,20);
+
+  doc.setTextColor(30,30,30);
+  doc.setFontSize(14);doc.setFont('helvetica','bold');doc.text('RECIBO DE PAGO',14,42);
+  doc.setDrawColor(27,95,166);doc.setLineWidth(0.4);doc.line(14,45,196,45);
+
+  doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text('ASEGURADO',14,54);
+  doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+  doc.text(`Nombre: ${p.nombre||'—'}`,14,61);
+  doc.text(`Email: ${p.email||'—'}`,14,67);
+
+  doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text('PÓLIZA',14,78);
+  doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+  doc.text(`Compañía: ${p.compania||'—'}`,14,85);doc.text(`Ramo: ${p.ramo||'—'}`,110,85);
+  doc.text(`N° de póliza: ${p.numero||'—'}`,14,92);doc.text(`Vencimiento: ${fmtDate(p.vence)}`,110,92);
+
+  doc.setFillColor(235,244,255);doc.roundedRect(14,105,182,26,3,3,'F');
+  doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(27,95,166);doc.text('MONTO ABONADO',18,114);
+  doc.setFontSize(16);doc.text(`$ ${(parseFloat(p.monto)||0).toLocaleString('es-AR')}`,18,124);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text(`Comisión productor (${p.comision||15}%): $ ${com.toLocaleString('es-AR')}`,110,117);
+
+  doc.setDrawColor(180,180,180);doc.setLineWidth(0.3);doc.line(14,155,90,155);
+  doc.setFontSize(9);doc.setTextColor(120,120,120);doc.text('Firma del productor',14,161);
+
+  doc.setFillColor(245,245,243);doc.rect(0,278,210,19,'F');
+  doc.setFontSize(8);doc.setTextColor(140,140,140);
+  doc.text('Documento generado por SegurOS · Productor de Seguros',14,287);
+  doc.text(`Recibo N° ${nRec} · ${fechaStr}`,14,293);
+
+  doc.save(`Recibo-${nRec}-${(p.nombre||'cliente').replace(/\s+/g,'-')}.pdf`);
+  closeDetail();toast('Recibo descargado');
+}
+
+// ─── MAILS ─────────────────────────────────────────────────
+async function generarMail(idx,prompt){
+  const el=document.getElementById('mg-'+idx);
+  el.innerHTML='<div style="padding:8px 0;font-size:12px;color:var(--text3)">Generando...</div>';
+  try{
+    const resp=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:prompt}]})});
+    const data=await resp.json();
+    el.innerHTML=`<div class="mail-gen">${data.content.map(c=>c.text||'').join('')}</div>`;
+  }catch(e){
+    el.innerHTML='<div style="font-size:12px;color:var(--red);padding:6px 0">Error. Intentá de nuevo.</div>';
+  }
+}
+
+// ─── INIT ──────────────────────────────────────────────────
+async function init(){
+  setSyncStatus('Cargando...');
+  try{
+    polizas=await dbGet();
+    renderAll();
+    setSyncStatus('');
+  }catch(e){
+    setSyncStatus('Sin conexión');
+    renderAll();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
